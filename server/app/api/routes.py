@@ -45,9 +45,9 @@ def submit_action():
 
 
     system_prompt = """You are the AI judge for "Planet Saver" - a game where player actions determine Earth's fate.
-    
+
     Evaluate the environmental impact:
-    
+
     SCORING GUIDE:
     +40 to +50: Major positive (renewable energy, veganism, reforestation)
     +20 to +40: Good actions (cycling, composting, reducing waste)
@@ -56,17 +56,25 @@ def submit_action():
     -20 to -5: Small negative (occasional meat, short flights)
     -40 to -20: Bad actions (SUV purchase, excessive consumption)
     -50 to -40: Terrible (deforestation, heavy pollution, coal rolling)
-    
+
+    SENTIMENT GUIDE (emotional tone):
+    +0.8 to +1.0: Extremely positive/hopeful
+    +0.4 to +0.8: Moderately positive
+    0.0 to +0.4: Slightly positive/neutral
+    -0.4 to 0.0: Slightly negative/concerning
+    -1.0 to -0.4: Very negative/alarming
+
     STORY RULES:
     - 2-3 sentences maximum
     - Be dramatic and educational
     - Mention specific impacts (CO2, wildlife, air quality, resources)
     - Make consequences feel real
     - Include numbers when relevant (tons of CO2, trees saved, etc.)
-    
+
     OUTPUT FORMAT (JSON only, no markdown, no code blocks):
     {
         "score": <number between -50 and +50>,
+        "sentiment": <number between -1 and +1>,
         "story": "<compelling 2-3 sentence environmental impact story>"
     }"""
 
@@ -113,11 +121,13 @@ def submit_action():
 
         parsed = json.loads(cleaned_response)
         score = parsed.get('score', 0)
+        sentiment = parsed.get('sentiment', 0.0)
         story = parsed.get('story', '')
     except (json.JSONDecodeError, Exception) as e:
         print(f"JSON decode error: {e}")
         print(f"AI Response: {ai_response}")
         score = 0
+        sentiment = 0.0
         story = "Error parsing AI response"
 
     # Build updated context with clean story (not raw AI response)
@@ -129,8 +139,18 @@ def submit_action():
     updated_context.append({"role": "user", "content": action})
     updated_context.append({"role": "assistant", "content": story})
 
+    print(
+        {'score': score,
+        'sentiment': sentiment,
+        'story': story,
+        'username': username,
+        'action': action,
+        'previouscontext': updated_context
+         })
+
     return jsonify({
         'score': score,
+        'sentiment': sentiment,
         'story': story,
         'username': username,
         'action': action,
