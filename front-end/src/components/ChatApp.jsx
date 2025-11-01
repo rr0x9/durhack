@@ -138,6 +138,8 @@ export default function ChatApp() {
 
   // Track mount to abort streaming when resetting
   const isComponentMountedRef = useRef(true);
+  // ref to store the current fetch's AbortController so we can cancel it on reset
+  const fetchControllerRef = useRef(null);
   useEffect(() => {
     isComponentMountedRef.current = true;
     return () => {
@@ -173,17 +175,55 @@ export default function ChatApp() {
     setIsGenerating(true);
 
     try {
-      // Replace with actual API call or streaming logic
-      await new Promise((r) => setTimeout(r, 600));
-      const fakeResponse = createFunnyDramaticVignette(userText);
-      if (isComponentMountedRef.current) await streamBotMessage(fakeResponse);
-    } catch (err) {
-      appendMessage({
-        sender: "bot",
-        text: "(error) Could not reach AI: " + err.message,
-        streaming: false,
+      // Minimal POST to backend kept inside this file (simple integration)
+      const controller = new AbortController();
+      fetchControllerRef.current = controller;
+
+      // append placeholder bot message that will be filled by streaming
+      appendMessage({ sender: "bot", text: "", streaming: true });
+
+      const resp = await fetch("http://localhost:5000/api/submit-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
       });
+
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      const ct = resp.headers.get("content-type") || "";
+      let responseText = "";
+      if (ct.includes("application/json")) {
+        const j = await resp.json();
+        // stream only the 'story' field when it's present
+        if (j && typeof j === "object" && (j.story || j.story === "")) {
+          responseText = j.story;
+        } else {
+          responseText =
+            typeof j === "string" ? j : j.text || JSON.stringify(j);
+        }
+      } else {
+        responseText = await resp.text();
+      }
+
+      if (isComponentMountedRef.current) await streamBotMessage(responseText);
+    } catch (err) {
+      if (err && err.name === "AbortError") {
+        // request was aborted (reset or navigation) — no error message
+      } else {
+        appendMessage({
+          sender: "bot",
+          text:
+            "(error) Could not reach AI: " +
+            (err && err.message ? err.message : String(err)),
+          streaming: false,
+        });
+      }
     } finally {
+      // clear controller ref
+      try {
+        fetchControllerRef.current = null;
+      } catch {}
       if (isComponentMountedRef.current) setIsGenerating(false);
     }
   }
@@ -205,6 +245,15 @@ export default function ChatApp() {
 
     // Stop any in-progress generation and abort streaming by toggling mounted flag
     isComponentMountedRef.current = false;
+    // abort any in-flight network request
+    try {
+      if (fetchControllerRef.current) {
+        fetchControllerRef.current.abort();
+        fetchControllerRef.current = null;
+      }
+    } catch {
+      // ignore
+    }
 
     // Reset React state
     setIsGenerating(false);
