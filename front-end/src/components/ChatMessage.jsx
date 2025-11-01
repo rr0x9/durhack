@@ -9,7 +9,7 @@ export default function ChatMessage({ sender, text, sentiment }) {
   } else {
     green = Math.floor(187*sentiment)+0x44;
   };
-  var colour = red&&green&&blue
+  var colour = red|green|blue
 
   const isUser = sender === "user";
 
