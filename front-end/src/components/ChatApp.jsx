@@ -2,6 +2,10 @@ import React, { useState, useEffect } from "react";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
 
+function getRandomFloat(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
 export default function ChatApp() {
   const [messages, setMessages] = useState([
     {
@@ -43,7 +47,12 @@ export default function ChatApp() {
     <div className="chat-container">
       <div className="chat-box">
         {messages.map((msg, idx) => (
-          <ChatMessage key={idx} sender={msg.sender} text={msg.text} />
+          <ChatMessage
+            key={idx}
+            sender={msg.sender}
+            text={msg.text}
+            sentiment={0.1}
+          />
         ))}
       </div>
       <ChatInput onSend={handleSend} disabled={isGenerating} />
