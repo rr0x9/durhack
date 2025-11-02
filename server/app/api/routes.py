@@ -180,7 +180,7 @@ def submit_action():
     client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
 
 
-    system_prompt = """You are the AI judge for "Planet Saver" - a game where player actions determine Earth's fate.
+    system_prompt = """You are the AI judge for "2100" - a game where player actions determine Earth's fate.
 
     Evaluate the environmental impact:
 
