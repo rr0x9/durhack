@@ -80,8 +80,6 @@ def generate_win_description():
     username = data.get('username')
     action = data.get('action')
     previous_context = data.get('previous_context')
-    no_messages = (len(previous_context)+1)//2
-    evaluation = data.get("score")/no_messages
 
     client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
 
