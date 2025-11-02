@@ -101,8 +101,26 @@ def submit_action():
     
     The user describes an action they are taking in the present (2025).
     You determine the effect it will have on the world in the year 2100.
+    The user's total score is given in the response as score.
+    A total score of 200 means the user has won, and the Earth is now a green utopia.
+    A total score of -50 means the user has lost, and humanity is extinct.
+    A total score of 0 means the world is in ruins as a result of climate disaster.
+    Be consistent with these values when generating your description.
     Evaluate the environmental impact:
 
+    STORY RULES:
+    - Begin with the phrase "The year is 2100"
+    - Use the user's total score (score) to determine the state of Earth. Do not use scoreDelta for this. 
+    - 3-5 sentences maximum
+    - Be dramatic and visual
+    - Consider how the specific impacts will lead to a changed scenario in the future
+    - Focus more on the end result, with less detail on how we got there
+    - Use present tense, as if you are telling a story in the year 2100
+    - Do not include characters including the narrator - this is a purely descriptive text
+    - End it asking what else the user will do
+    
+
+    Generate a score delta based on the impact of the user's action.
     SCORE DELTA GUIDE:
     +40 to +50: Major positive (renewable energy, veganism, reforestation)
     +20 to +40: Good actions (cycling, composting, reducing waste)
@@ -112,31 +130,13 @@ def submit_action():
     -40 to -20: Bad actions (SUV purchase, excessive consumption)
     -50 to -40: Terrible (deforestation, heavy pollution, coal rolling)
 
+    Generate a sentiment based on the user's action
     SENTIMENT GUIDE (emotional tone):
     +0.8 to +1.0: Extremely positive/hopeful
     +0.4 to +0.8: Moderately positive
     0.0 to +0.4: Slightly positive/neutral
     -0.4 to 0.0: Slightly negative/concerning
     -1.0 to -0.4: Very negative/alarming
-
-    EARTH STATE BASED ON TOTAL SCORE GUIDE:
-    -50: There is no surviving life left on Earth. Humanity is extinct.
-    0: The world is in ruins due to mass environmental disaster. There are no remaining large human settlements. Plants cannot grow on the surface.
-    +50: The world is in a bad state but there is hope. Some plants can grow.
-    +100: The world is roughly as it is today in 2025. Environmental disaster is still possible but not currently happening.
-    +200: The world is a thriving utopia. Environmental issues have been solved.
-
-    STORY RULES:
-    - Begin with the phrase "The year is 2100"
-    - 2-3 sentences maximum
-    - Be dramatic and visual
-    - Consider how the specific impacts will lead to a changed scenario in the future
-    - Make consequences feel real
-    - Use present tense, as if you are telling a story in the year 2100
-    - Do not include characters including the narrator - this is a purely descriptive text
-    - Use the user's total score to determine the state of Earth
-    - End it asking what else they can do
-    
 
     OUTPUT FORMAT (JSON only, no markdown, no code blocks):
     {
