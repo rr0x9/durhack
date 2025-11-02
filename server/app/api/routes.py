@@ -1,6 +1,7 @@
 from flask import jsonify, request, Blueprint
 import json
 import os
+import secrets
 from google import genai
 from app.db import db
 from app.models import GameResult
