@@ -282,6 +282,10 @@ export default function ChatApp() {
       } else {
         responseText = await resp.text();
       }
+      const previouscontext = buildApiConversationPayload(
+        contextIncludingThisAction
+      );
+      const efficacyScore = tempScore / Math.floor((previouscontext.length+1)/2);  //score / number of messages. Basically how efficiently user did good
 
       // Check win/lose conditions using updated tempScore
       if (tempScore >= WINNING_SCORE) {
@@ -293,9 +297,7 @@ export default function ChatApp() {
         try {
           const payload2 = {
             username,
-            previouscontext: buildApiConversationPayload(
-              contextIncludingThisAction
-            ),
+            previouscontext,
             action: userText,
             score: tempScore,
           };
@@ -319,17 +321,14 @@ export default function ChatApp() {
         finalResult = "lose";
         setGameResult("lose");
         setGameOver(true);
-
         try {
           const payload2 = {
             username,
-            previouscontext: buildApiConversationPayload(
-              contextIncludingThisAction
-            ),
+            previouscontext,
             action: userText,
             score: tempScore,
           };
-
+        
           const resp2 = await fetch(
             "http://localhost:5000/api/generate-lose-description",
             {
@@ -362,8 +361,8 @@ export default function ChatApp() {
       if (finalResult) {
         const announcement =
           finalResult === "win"
-            ? `🎉 Game over — you WON! Final score: ${tempScore}. Congratulations! Press Restart to try again!`
-            : `💥 Game over — you LOST. Final score: ${tempScore}. Better luck next time. Press Restart to try again!`;
+            ? `🎉 Game over — you WON! Final score: ${tempScore}. Efficacy: ${efficacyScore}. Congratulations! Press Restart to try again!`
+            : `💥 Game over — you LOST. Final score: ${tempScore}. Efficacy: ${efficacyScore}. Better luck next time. Press Restart to try again!`;
 
         // small delay so the announcement appears after the streamed text
         await new Promise((r) => setTimeout(r, 350));
