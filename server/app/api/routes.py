@@ -62,6 +62,77 @@ def first_message():
         return jsonify({'error': 'Gemini API call failed',}), 500
 
     
+@api.route('/generate-win-description', methods=['POST'])
+def generate_win_description():
+    """
+    Recieves score, previous context. Generates a description of a utopian society based on this.
+    """
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'No JSON data provided'}), 400
+
+    username = data.get('username')
+    action = data.get('action')
+    previous_context = data.get('previous_context')
+
+    client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
+
+
+    system_prompt = """You are the AI judge for "Planet Saver" - a game where player actions determine Earth's fate.
+    
+    The user describes an action they are taking in the present (2025).
+    You determine the effect it will have on the world in the year 2100.
+    The user has recieved 200 points and won the game. 
+    Describe the hypothetical utopian green future they have created as a result of their actions in the present
+    STORY RULES:
+    - Begin with the phrase "The year is 2100"
+    - 3-5 sentences describing a hypothetical utopian future
+    - Consider how the most recent action, and all of the actions the user has previously taken, have led to this future
+    - Use present tense, as if you are telling a story in the year 2100
+    - Do not include characters including the narrator - this is a purely descriptive text
+    - Consequences should feel real.
+    - Next, tell the user this was a hypothetical scenario, but their actions have had positive impact in the real world
+    - Use statistics and figures e.g. how much CO2 the user may have saved.
+    - This should inspire the user to do good 
+    Output no extra metadata, lists, instructions, or explanation, with no leading or trailing whitespace and just the text.
+    """
+    # Build messages for conversation
+    current_prompt = f'Player "{username}" action: "{action}"\n'
+
+    # If there's previous context, include it
+    full_prompt = system_prompt + "\n\n"
+    if previous_context and isinstance(previous_context, list):
+        full_prompt += "Previous conversation:\n"
+        for msg in previous_context:
+            role = msg.get('role', 'user')
+            content = msg.get('content', '')
+            full_prompt += f"{role}: {content}\n"
+        full_prompt += "\n"
+
+    full_prompt += current_prompt
+
+    response = client.models.generate_content(
+        model="gemini-2.0-flash-exp",
+        contents=full_prompt
+    )
+
+    try:
+        ai_response = response.text
+       # print(f"AI Response: {ai_response}") # Print for server debugging
+
+        ai_response = ai_response.strip()
+        # Successful Return
+        return jsonify({
+            "story": ai_response
+        }), 200
+
+    # --- Exception Handling ---
+    except:
+        # Catches errors specific to the Gemini API (e.g., key error, bad request)
+        return jsonify({'error': 'Gemini API call failed',}), 500
+
+
 @api.route('/submit-action', methods=['POST'])
 def submit_action():
     """
