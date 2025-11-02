@@ -62,6 +62,77 @@ def first_message():
         return jsonify({'error': 'Gemini API call failed',}), 500
 
     
+@api.route('/generate-win-description', methods=['POST'])
+def generate_win_description():
+    """
+    Recieves score, previous context. Generates a description of a utopian society based on this.
+    """
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'No JSON data provided'}), 400
+
+    username = data.get('username')
+    action = data.get('action')
+    previous_context = data.get('previous_context')
+
+    client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
+
+
+    system_prompt = """You are the AI judge for "Planet Saver" - a game where player actions determine Earth's fate.
+    
+    The user describes an action they are taking in the present (2025).
+    You determine the effect it will have on the world in the year 2100.
+    The user has recieved 200 points and won the game. 
+    Describe the hypothetical utopian green future they have created as a result of their actions in the present
+    STORY RULES:
+    - Begin with the phrase "The year is 2100"
+    - 3-5 sentences describing a hypothetical utopian future
+    - Consider how the most recent action, and all of the actions the user has previously taken, have led to this future
+    - Use present tense, as if you are telling a story in the year 2100
+    - Do not include characters including the narrator - this is a purely descriptive text
+    - Consequences should feel real.
+    - Next, tell the user this was a hypothetical scenario, but their actions have had positive impact in the real world
+    - Use statistics and figures e.g. how much CO2 the user may have saved.
+    - This should inspire the user to do good 
+    Output no extra metadata, lists, instructions, or explanation, with no leading or trailing whitespace and just the text.
+    """
+    # Build messages for conversation
+    current_prompt = f'Player "{username}" action: "{action}"\n'
+
+    # If there's previous context, include it
+    full_prompt = system_prompt + "\n\n"
+    if previous_context and isinstance(previous_context, list):
+        full_prompt += "Previous conversation:\n"
+        for msg in previous_context:
+            role = msg.get('role', 'user')
+            content = msg.get('content', '')
+            full_prompt += f"{role}: {content}\n"
+        full_prompt += "\n"
+
+    full_prompt += current_prompt
+
+    response = client.models.generate_content(
+        model="gemini-2.0-flash-exp",
+        contents=full_prompt
+    )
+
+    try:
+        ai_response = response.text
+       # print(f"AI Response: {ai_response}") # Print for server debugging
+
+        ai_response = ai_response.strip()
+        # Successful Return
+        return jsonify({
+            "story": ai_response
+        }), 200
+
+    # --- Exception Handling ---
+    except:
+        # Catches errors specific to the Gemini API (e.g., key error, bad request)
+        return jsonify({'error': 'Gemini API call failed',}), 500
+
+
 @api.route('/submit-action', methods=['POST'])
 def submit_action():
     """
@@ -101,8 +172,26 @@ def submit_action():
     
     The user describes an action they are taking in the present (2025).
     You determine the effect it will have on the world in the year 2100.
+    The user's total score is given in the response as score.
+    A total score of 200 means the user has won, and the Earth is now a green utopia.
+    A total score of -50 means the user has lost, and humanity is extinct.
+    A total score of 0 means the world is in ruins as a result of climate disaster.
+    Be consistent with these values when generating your description.
     Evaluate the environmental impact:
 
+    STORY RULES:
+    - Begin with the phrase "The year is 2100"
+    - Use the user's total score (score) to determine the state of Earth. Do not use scoreDelta for this. 
+    - 3-5 sentences maximum
+    - Be dramatic and visual
+    - Consider how the specific impacts will lead to a changed scenario in the future
+    - Focus more on the end result, with less detail on how we got there
+    - Use present tense, as if you are telling a story in the year 2100
+    - Do not include characters including the narrator - this is a purely descriptive text
+    - End it asking what else the user will do
+    
+
+    Generate a score delta based on the impact of the user's action.
     SCORE DELTA GUIDE:
     +40 to +50: Major positive (renewable energy, veganism, reforestation)
     +20 to +40: Good actions (cycling, composting, reducing waste)
@@ -112,31 +201,13 @@ def submit_action():
     -40 to -20: Bad actions (SUV purchase, excessive consumption)
     -50 to -40: Terrible (deforestation, heavy pollution, coal rolling)
 
+    Generate a sentiment based on the user's action
     SENTIMENT GUIDE (emotional tone):
     +0.8 to +1.0: Extremely positive/hopeful
     +0.4 to +0.8: Moderately positive
     0.0 to +0.4: Slightly positive/neutral
     -0.4 to 0.0: Slightly negative/concerning
     -1.0 to -0.4: Very negative/alarming
-
-    EARTH STATE BASED ON TOTAL SCORE GUIDE:
-    -50: There is no surviving life left on Earth. Humanity is extinct.
-    0: The world is in ruins due to mass environmental disaster. There are no remaining large human settlements. Plants cannot grow on the surface.
-    +50: The world is in a bad state but there is hope. Some plants can grow.
-    +100: The world is roughly as it is today in 2025. Environmental disaster is still possible but not currently happening.
-    +200: The world is a thriving utopia. Environmental issues have been solved.
-
-    STORY RULES:
-    - Begin with the phrase "The year is 2100"
-    - 2-3 sentences maximum
-    - Be dramatic and visual
-    - Consider how the specific impacts will lead to a changed scenario in the future
-    - Make consequences feel real
-    - Use present tense, as if you are telling a story in the year 2100
-    - Do not include characters including the narrator - this is a purely descriptive text
-    - Use the user's total score to determine the state of Earth
-    - End it asking what else they can do
-    
 
     OUTPUT FORMAT (JSON only, no markdown, no code blocks):
     {
