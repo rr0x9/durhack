@@ -65,7 +65,7 @@ def first_message():
 @api.route('/submit-action', methods=['POST'])
 def submit_action():
     """
-    Receive user action and return AI-generated story and score.
+    Receive user action and return AI-generated story and Delta.
 
     Expected JSON body:
     {
@@ -187,13 +187,13 @@ def submit_action():
         cleaned_response = re.sub(r':\s*\+(\d+)', r': \1', cleaned_response)
 
         parsed = json.loads(cleaned_response)
-        score = parsed.get('score', 0)
+        scoreDelta = parsed.get('scoreDelta', 0)
         sentiment = parsed.get('sentiment', 0.0)
         story = parsed.get('story', '')
     except (json.JSONDecodeError, Exception) as e:
         print(f"JSON decode error: {e}")
         print(f"AI Response: {ai_response}")
-        score = 0
+        scoreDelta = 0
         sentiment = 0.0
         story = "Error parsing AI response"
 
@@ -207,7 +207,7 @@ def submit_action():
     updated_context.append({"role": "assistant", "content": story})
 
     print(
-        {'score': score,
+        {'scoreDelta': scoreDelta,
         'sentiment': sentiment,
         'story': story,
         'username': username,
@@ -216,7 +216,7 @@ def submit_action():
          })
 
     return jsonify({
-        'score': score,
+        'scoreDelta': scoreDelta,
         'sentiment': sentiment,
         'story': story,
         'username': username,
